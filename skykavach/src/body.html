@@ -1,0 +1,313 @@
+<!-- LOGIN -->
+<div class="login" id="login">
+  <form class="login-card" id="loginForm" autocomplete="off">
+    <div class="brand"><svg width="40" height="40" viewBox="0 0 34 34" aria-hidden="true"><path d="M17 2 30 7v9c0 8-5.6 13.6-13 16C9.6 29.6 4 24 4 16V7z" fill="none" stroke="#6cc7e6" stroke-width="2"/><circle cx="17" cy="16" r="6" fill="none" stroke="#6cc7e6" stroke-width="1.4"/><path d="M17 16 22 11" stroke="#e8b33a" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="1.6" fill="#6cc7e6"/></svg>
+      <div><h1>SkyKavach</h1><div class="site">Drone threat detection for critical sites</div></div></div>
+    <label class="field">Your name<input id="loginName" required maxlength="40" placeholder="e.g. Ramesh Patil" value="Demo user"></label>
+    <div class="field" style="margin-top:12px">Sign in as</div>
+    <div class="roles" id="roleCards" role="radiogroup" aria-label="Role">
+      <label class="rolecard"><input type="radio" name="role" value="Guard"><b>Guard</b><span>Sees live alerts and the camera. Acknowledges and labels alerts.</span></label>
+      <label class="rolecard"><input type="radio" name="role" value="Supervisor" checked><b>Supervisor</b><span>Everything a guard sees, plus zones, sensors, evidence, insights and demo controls.</span></label>
+      <label class="rolecard"><input type="radio" name="role" value="Admin"><b>Admin</b><span>Full access: privacy settings, planning tools, users and the audit log.</span></label>
+      <label class="rolecard"><input type="radio" name="role" value="Police"><b>Police (auditor)</b><span>Read-only: live picture and evidence. Can verify and export capsules.</span></label>
+    </div>
+    <button class="btn primary" type="submit" style="margin-top:14px;width:100%">Sign in</button>
+    <p class="muted" style="font-size:12px;margin:10px 0 0">Demo sign-in. A production build adds a PIN or OTP per user.</p>
+  </form>
+</div>
+
+<header class="topbar">
+  <div class="brand">
+    <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><path d="M17 2 30 7v9c0 8-5.6 13.6-13 16C9.6 29.6 4 24 4 16V7z" fill="none" stroke="#6cc7e6" stroke-width="2"/><circle cx="17" cy="16" r="6" fill="none" stroke="#6cc7e6" stroke-width="1.4"/><path d="M17 16 22 11" stroke="#e8b33a" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="16" r="1.6" fill="#6cc7e6"/></svg>
+    <div><h1>SkyKavach</h1><div class="site" id="siteName">Site 7 · Water Treatment Plant</div></div>
+  </div>
+  <div class="statusgroup">
+    <span class="clock" id="clock">Day 1 · 22:40:00</span>
+    <span class="pill lv-LOW" id="sitePill" title="Highest live threat"><span class="dot"></span><span>CLEAR</span></span>
+    <select class="compact" id="postureSel" data-perm="posture.set" aria-label="Site posture" title="Site posture (K factor)">
+      <option value="NORMAL">Posture: NORMAL</option><option value="ELEVATED">Posture: ELEVATED</option><option value="HIGH_ALERT">Posture: HIGH ALERT</option>
+    </select>
+    <span class="pill" id="postureEff" hidden></span>
+    <div class="seg" role="group" aria-label="Language" id="langSeg" data-noi18n>
+      <button data-lang="mr">मराठी</button><button data-lang="hi">हिंदी</button><button data-lang="en" aria-pressed="true">EN</button>
+    </div>
+    <button class="btn small" id="soundBtn" aria-pressed="false">🔈 Sound off</button>
+    <select class="compact" id="voiceSel" aria-label="Voice" title="Voice for spoken alerts"><option value="">Voice: auto</option></select>
+    <button class="btn small" id="testSoundBtn">Test voice</button>
+    <button class="btn small primary" id="demoBtn" data-perm="demo.control">▶ Guided demo</button>
+    <button class="btn small userchip" id="userChip" title="Switch user"><span id="userName">—</span> · <b id="userRole">—</b></button>
+  </div>
+</header>
+<nav class="tabs" role="tablist" id="tabs">
+  <button role="tab" data-view="live" aria-selected="true">Live</button>
+  <button role="tab" data-view="setup" data-roles="Supervisor,Admin">Zones &amp; Setup</button>
+  <button role="tab" data-view="shield" data-roles="Supervisor,Admin">Sensors</button>
+  <button role="tab" data-view="evidence" data-roles="Supervisor,Admin,Police">Evidence</button>
+  <button role="tab" data-view="memory" data-roles="Supervisor,Admin">Insights</button>
+  <button role="tab" data-view="redteam" data-roles="Admin">Planning</button>
+  <button role="tab" data-view="users" data-roles="Admin">Users</button>
+</nav>
+<main>
+  <div class="democap" id="demoCaption" hidden></div>
+  <div class="banner" id="attackBanner" hidden>⚠ SENSOR UNDER ATTACK — <span id="attackText"></span></div>
+
+  <!-- LIVE -->
+  <section class="view" id="view-live">
+    <div class="grid-live">
+      <div class="col">
+        <div class="card">
+          <header><h2>Site picture</h2><span class="muted" style="font-size:12px" id="mapHint">Tap a drone to inspect it</span></header>
+          <div class="scenbar" id="scenInfo" hidden></div>
+          <div class="mapwrap"><canvas id="map" width="960" height="600" aria-label="Site map with zones, sensors and tracked objects"></canvas></div>
+          <div class="maplegend">
+            <span><i style="background:var(--high)"></i>Critical</span><span><i style="background:var(--med)"></i>Important</span><span><i style="background:var(--low)"></i>Low</span>
+            <span><i style="background:var(--auth)"></i>Permit area</span><span><i style="background:var(--accent)"></i>Sensor coverage</span>
+          </div>
+        </div>
+        <div class="card" id="demoCard" data-roles="Supervisor,Admin">
+          <header><h2>Demo controls</h2>
+            <div class="row"><span class="muted" style="font-size:12px">Speed</span>
+              <div class="seg" role="group" aria-label="Simulation speed" id="speedSeg"><button id="playBtn" aria-label="Pause">❚❚</button><button data-speed="1" aria-pressed="true">1×</button><button data-speed="2">2×</button><button data-speed="4">4×</button><button data-speed="8">8×</button></div></div></header>
+          <div class="demo-grid">
+            <div>
+              <div class="eyebrow">1 · Fly your own drone</div>
+              <p class="muted small">Click points on the map to draw a path, set height and speed, then fly it. SkyKavach scores it live.</p>
+              <div class="formgrid">
+                <label class="field">Height <span class="mono" id="cfAltV">40 m</span><input type="range" id="cfAlt" min="10" max="120" step="5" value="40"></label>
+                <label class="field">Speed <span class="mono" id="cfSpdV">7 m/s</span><input type="range" id="cfSpd" min="1" max="15" step="1" value="7"></label>
+                <label class="field">At the last point<select id="cfEnd"><option value="none">fly on</option><option value="hover">hover 60 s</option><option value="orbit" selected>circle it 3 times</option><option value="drop">descend (drop)</option></select></label>
+              </div>
+              <div class="row" style="margin-top:8px"><button class="btn small" id="cfDraw">✏ Draw path</button><button class="btn small primary" id="cfFly" disabled>Fly it</button><button class="btn small" id="cfClear">Clear</button><span class="muted small" id="cfInfo"></span></div>
+            </div>
+            <div>
+              <div class="eyebrow">2 · Or run a ready scenario</div>
+              <div class="scen" id="scenarios"></div>
+            </div>
+            <div>
+              <div class="eyebrow">3 · Attack the sensors</div>
+              <div class="row" style="margin-top:6px" id="attackBtns">
+                <button class="btn small attack" data-attack="cover">Cover camera</button>
+                <button class="btn small attack" data-attack="laser">Laser glare</button>
+                <button class="btn small attack" data-attack="turn">Turn camera</button>
+                <button class="btn small attack" data-attack="micFlood">Flood mic A</button>
+                <button class="btn small attack" data-attack="power">Cut power node A</button>
+                <button class="btn small" id="restoreBtn">Restore all</button>
+              </div>
+              <p class="muted small" style="margin-top:6px">One failing sensor = anomaly. Two within 30 s = SENSOR UNDER ATTACK.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card" id="threatCard">
+          <header><h2>Threat assessment</h2><span class="muted mono" id="trackId">—</span></header>
+          <div id="threatBody"><p class="muted">No drone tracked yet.</p></div>
+          <div class="eyebrow" style="margin-top:10px">Score over time <span class="faint" style="text-transform:none;letter-spacing:0">· MEDIUM ≥ 0.30 · HIGH ≥ 0.60</span></div>
+          <canvas id="chart" class="chart" width="700" height="150"></canvas>
+        </div>
+        <div class="card">
+          <header><h3>Camera 1 · north sky</h3><span class="muted" style="font-size:12px">ground is blurred for privacy</span></header>
+          <div class="cam"><canvas id="camView" width="320" height="180"></canvas><div class="osd" id="camOsd">CAM-1 · REC</div><div class="osd2" id="camOsd2"></div></div>
+          <div class="health-chips" id="healthChips"></div>
+        </div>
+        <div class="card" id="phonesCard" data-roles="Guard,Supervisor,Admin">
+          <header><h3>Guard phones</h3><span class="muted" style="font-size:12px" id="ladderNote">Escalation: supervisor at 60 s, police at 120 s</span></header>
+          <div class="phones"><div class="phone" id="phoneGuard"></div><div class="phone" id="phoneSup"></div></div>
+        </div>
+        <div class="card">
+          <header><h3>Alerts</h3><button class="btn small" id="handoverBtn2" data-roles="Supervisor,Admin">Shift brief</button></header>
+          <div class="feed" id="feed"><p class="muted">Quiet sky.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETUP -->
+  <section class="view" id="view-setup" hidden>
+    <div class="grid-live">
+      <div class="card">
+        <header><h2>Paint-the-Zone</h2><span class="muted" style="font-size:12px">Drag on the map to paint a zone · tap a zone to edit it</span></header>
+        <div class="mapwrap"><canvas id="setupMap" width="960" height="600" aria-label="Zone painting canvas"></canvas></div>
+        <div class="row" style="margin-top:8px">
+          <span class="eyebrow">Brush</span>
+          <div class="seg" id="brushSeg"><button data-c="3" aria-pressed="true">Red · critical</button><button data-c="2">Orange · important</button><button data-c="1">Green · low</button></div>
+          <button class="btn small" id="clearPaint">Clear stroke</button>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <header><h3>Site</h3></header>
+          <label class="field">Site name<input id="siteInput" maxlength="60" data-perm="zone.edit"></label>
+        </div>
+        <div class="card" id="zoneForm">
+          <header><h3>Zone details</h3></header>
+          <p class="muted" id="zoneFormHint">Paint an area, or pick a zone below to edit it.</p>
+          <div class="formgrid" id="zoneFields" hidden>
+            <label class="field">Name (English)<input id="zNameEn"></label>
+            <label class="field">नाव (मराठी)<input id="zNameMr"></label>
+            <label class="field">Importance<select id="zC"><option value="3">3 · critical</option><option value="2">2 · important</option><option value="1">1 · low</option></select></label>
+            <label class="field">Alert distance <span class="mono" id="zBufV">30 m</span><input type="range" id="zBuf" min="5" max="80" step="5" value="30"></label>
+            <label class="field">Critical only from (h)<input id="zWinFrom" type="number" min="0" max="24" step="0.5" placeholder="always"></label>
+            <label class="field">until (h)<input id="zWinTo" type="number" min="0" max="24" step="0.5" placeholder="always"></label>
+          </div>
+          <div class="row" style="margin-top:8px" id="zoneActions" hidden><button class="btn primary small" id="zSave" data-perm="zone.edit">Save zone</button><button class="btn small danger" id="zDelete" data-perm="zone.edit">Delete</button><button class="btn small" id="zCancel">Cancel</button></div>
+        </div>
+        <div class="card"><header><h3>Zones</h3></header><div class="tablewrap"><table><thead><tr><th>Zone</th><th class="num">Importance</th><th class="num">Alert distance</th></tr></thead><tbody id="zoneList"></tbody></table></div></div>
+        <div class="card">
+          <header><h3>Approved flights</h3></header>
+          <div class="tablewrap"><table><thead><tr><th>Permit</th><th>Near</th><th>Time</th></tr></thead><tbody id="permitList"></tbody></table></div>
+          <div class="formgrid" style="margin-top:8px">
+            <label class="field">Operator<input id="pOp" placeholder="e.g. Survey team"></label>
+            <label class="field">Near zone<select id="pZone"></select></label>
+            <label class="field">From (h)<input id="pFrom" type="number" min="0" max="24" step="0.25" value="22.5"></label>
+            <label class="field">To (h)<input id="pTo" type="number" min="0" max="24" step="0.25" value="23.5"></label>
+          </div>
+          <div class="row" style="margin-top:8px"><button class="btn small" id="pAdd" data-perm="permit.edit">Add approved flight</button></div>
+        </div>
+        <div class="card">
+          <header><h3>Who gets alerted</h3></header>
+          <div class="formgrid" id="sopContacts"></div>
+          <label class="field" style="margin-top:8px">What the guard should do (मराठी, one step per line)<textarea id="sopMr" rows="4" data-perm="sop.edit"></textarea></label>
+          <label class="field" style="margin-top:6px">What the guard should do (English)<textarea id="sopEn" rows="4" data-perm="sop.edit"></textarea></label>
+          <div class="row" style="margin-top:6px"><button class="btn small" id="sopSave" data-perm="sop.edit">Save</button></div>
+        </div>
+        <div class="card" data-roles="Admin">
+          <header><h3>Privacy</h3></header>
+          <label class="field">Blur below this line on Camera 1 <span class="mono" id="horizonV"></span><input type="range" id="horizon" data-perm="privacy.edit" min="60" max="170" value="122"></label>
+          <label class="field" style="margin-top:8px">Delete normal footage after<select id="retention" data-perm="privacy.edit"><option value="120">2 minutes (demo)</option><option value="86400" selected>24 hours</option><option value="259200">72 hours</option></select></label>
+          <dl class="kv" style="margin-top:8px" id="retentionStats"></dl>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SENSORS -->
+  <section class="view" id="view-shield" hidden>
+    <div class="grid-2">
+      <div class="card">
+        <header><h2>Sensor health</h2><span class="muted" style="font-size:12px">checked every 5 s</span></header>
+        <div class="tablewrap"><table><thead><tr><th>Sensor</th><th>Status</th><th class="num">Watching today</th></tr></thead><tbody id="healthTable"></tbody></table></div>
+        <div class="row" style="margin-top:10px"><button class="btn small primary" id="powSeal" data-perm="pow.seal">Sign today's watch log</button></div>
+        <div id="powSealed" style="margin-top:8px"></div>
+      </div>
+      <div class="card">
+        <header><h2>Alarm self-test</h2><button class="btn small primary" id="drillBtn" data-perm="drill.run">Run test now</button></header>
+        <p class="muted small" style="margin:0 0 8px">Sends a marked TEST alert through the whole chain and waits for the guard to acknowledge.</p>
+        <div class="tablewrap"><table><thead><tr><th>Time</th><th>Guard ack</th><th>Result</th></tr></thead><tbody id="drillTable"></tbody></table></div>
+      </div>
+      <div class="card" style="grid-column:1/-1">
+        <header><h2>Sensor events</h2></header>
+        <div class="feed" id="anomalyFeed"><p class="muted">No anomalies.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EVIDENCE -->
+  <section class="view" id="view-evidence" hidden>
+    <div class="grid-live">
+      <div class="col">
+        <div class="card">
+          <header><h2>Evidence</h2><span class="muted" style="font-size:12px" id="deviceInfo"></span></header>
+          <div class="tablewrap"><table><thead><tr><th>Capsule</th><th>Alert</th><th>Site time</th><th>Status</th></tr></thead><tbody id="capList"></tbody></table></div>
+        </div>
+        <div class="card" id="capDetail"><p class="muted">Select a capsule.</p></div>
+        <div class="card">
+          <header><h3>Incident replay</h3><button class="btn small" id="replayBtn" disabled>▶ Replay</button></header>
+          <div class="mapwrap"><canvas id="replayMap" width="960" height="600"></canvas></div>
+          <canvas id="replayChart" class="chart" width="900" height="130" style="margin-top:6px"></canvas>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <header><h3>Check a capsule file</h3></header>
+          <p class="muted small" style="margin:0 0 8px">Anyone can check an exported capsule. No trust in SkyKavach needed.</p>
+          <label class="btn small" style="display:inline-block">Choose file (.json)<input type="file" id="verifyFile" accept=".json,application/json" hidden></label>
+          <div id="verifyFileOut"></div>
+        </div>
+        <div class="card">
+          <header><h3>Daily seal</h3><button class="btn small primary" id="anchorBtn" data-perm="evidence.anchor">Seal today</button></header>
+          <p class="muted small" style="margin:0 0 8px">One fingerprint of all of today's evidence is sent outside the device. If any clip is swapped later, it stops matching.</p>
+          <div id="anchorList"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSIGHTS -->
+  <section class="view" id="view-memory" hidden>
+    <div class="grid-2">
+      <div class="card">
+        <header><h2>Repeat visits (recon memory)</h2></header>
+        <p class="muted small" style="margin:0 0 8px">3 similar unapproved visits within 7 days = RECON PATTERN. The site then stays on ELEVATED alert for 7 days.</p>
+        <div class="tablewrap"><table><thead><tr><th>Day</th><th>Time</th><th>From</th><th>Behaviour</th><th>Zone</th><th>Match</th></tr></thead><tbody id="visitTable"></tbody></table></div>
+      </div>
+      <div class="card">
+        <header><h2>Site alert level</h2></header>
+        <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="nightChk" data-perm="posture.set"> Raise to ELEVATED every night (22:00–05:00)</label>
+        <div class="tablewrap" style="margin-top:8px"><table><thead><tr><th>Site time</th><th>Level</th><th>By</th><th>Why</th></tr></thead><tbody id="postureLog"></tbody></table></div>
+      </div>
+      <div class="card">
+        <header><h2>Kites and birds</h2><div class="row"><span class="muted mono" id="siteDate"></span><button class="btn small" id="jumpKite">Jump to 14 Jan</button></div></header>
+        <p class="muted small" style="margin:0 0 8px">Guard labels teach the site's sky. In kite or bird season, low and medium zones need extra proof before alerting. A HIGH alert in a critical zone is never held back.</p>
+        <div class="tablewrap"><table><thead><tr><th>Season</th><th>Dates</th><th>Source</th><th>Now</th></tr></thead><tbody id="skyCal"></tbody></table></div>
+        <div class="tablewrap" style="margin-top:8px"><table><thead><tr><th>Site time</th><th>Drone</th><th>Guard said</th></tr></thead><tbody id="labelTable"></tbody></table></div>
+      </div>
+      <div class="card">
+        <header><h2>Shift handover</h2><button class="btn small primary" id="handoverBtn">Make brief</button></header>
+        <p class="muted small" style="margin:0">One page in Marathi and English for the next guard: incidents, open alerts, repeat visits, alert level, sensor uptime and the last self-test.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLANNING -->
+  <section class="view" id="view-redteam" hidden>
+    <div class="grid-live">
+      <div class="card">
+        <header><h2>Where are the blind spots?</h2><span class="muted" style="font-size:12px" id="rtSummary"></span></header>
+        <div class="mapwrap"><canvas id="rtMap" width="960" height="600"></canvas></div>
+        <div class="maplegend"><span><i style="background:#2f9e74"></i>Covered</span><span><i style="background:#d9a531"></i>Weak</span><span><i style="background:#e0464a"></i>Blind spot</span><span><i style="background:var(--accent)"></i>Suggested new sensor</span></div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <header><h3>Test my site</h3></header>
+          <p class="muted small">Flies hundreds of virtual drones (straight, low behind trees, circling, grid, side approach) past your sensors.</p>
+          <div class="formgrid"><label class="field">Virtual drones<select id="rtCount"><option>100</option><option selected>300</option><option>600</option></select></label>
+            <label class="field">Time of day<select id="rtSun"><option value="">Night</option><option value="0">Morning (sun in east)</option><option value="180">Evening (sun in west)</option></select></label></div>
+          <div class="row" style="margin-top:8px"><button class="btn primary small" id="rtRun" data-perm="redteam.run">Run test</button><button class="btn small" id="rtApply" disabled>Add suggested sensor</button><button class="btn small" id="rtReset">Reset</button></div>
+        </div>
+        <div class="card"><header><h3>Warning time per zone</h3></header><div class="tablewrap"><table><thead><tr><th>Zone</th><th class="num">Missed</th><th class="num">Warning</th></tr></thead><tbody id="rtTable"><tr><td colspan="3" class="muted">Run the test.</td></tr></tbody></table></div></div>
+        <div class="card">
+          <header><h3>Power-line / canal mesh</h3></header>
+          <canvas id="aeglCanvas" width="960" height="300" style="width:100%;height:auto;border:1px solid var(--line);border-radius:6px;background:var(--land)"></canvas>
+          <label class="field" style="margin-top:8px">Drone position along the line <span class="mono" id="aegXV"></span><input type="range" id="aegX" min="0" max="450" value="205"></label>
+          <label class="field" style="margin-top:6px">Wind noise <span class="mono" id="aegNV"></span><input type="range" id="aegN" min="0" max="40" value="10"></label>
+          <input type="hidden" id="aegL" value="15"><span id="aegLV" hidden></span>
+          <div class="row" style="margin-top:8px"><button class="btn small" id="aegPlay">▶ Fly along the line</button></div>
+          <dl class="kv" id="aegOut" style="margin-top:8px"></dl>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- USERS -->
+  <section class="view" id="view-users" hidden>
+    <div class="grid-2">
+      <div class="card">
+        <header><h2>Who can do what</h2></header>
+        <div class="tablewrap"><table id="rbacMatrix"></table></div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <header><h2>Sign-ins</h2></header>
+          <div class="tablewrap"><table><thead><tr><th>Time</th><th>Name</th><th>Role</th></tr></thead><tbody id="sessionList"></tbody></table></div>
+        </div>
+        <div class="card">
+          <header><h2>Audit log</h2></header>
+          <div class="tablewrap"><table><thead><tr><th>Time</th><th>Who</th><th>Action</th><th>Item</th></tr></thead><tbody id="accessLog"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<div class="modal" id="modal" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><header><h2 id="modalTitle"></h2><div class="row" id="modalActions"></div></header><div id="modalBody"></div></div></div>
+<div class="toast" id="toast" aria-live="polite"></div>
